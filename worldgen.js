@@ -19,30 +19,13 @@ function worldgen(){
 
 function createBlock(x, y, z) {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const loadPic = new THREE.TextureLoader();
-
-    // コールバック関数でテクスチャの読み込みを確認
-    loadPic.load(
-        'resource/texture/nature/cobblestone.png', // テクスチャのパス
-        function (texture) {
-            // テクスチャが正常に読み込まれた場合
-            let material = [
-                new THREE.MeshBasicMaterial({ map: texture }),
-                new THREE.MeshBasicMaterial({ map: texture }),
-                new THREE.MeshBasicMaterial({ map: texture }),
-                new THREE.MeshBasicMaterial({ map: texture }),
-                new THREE.MeshBasicMaterial({ map: texture }),
-                new THREE.MeshBasicMaterial({ map: texture })
-            ];
-
-            const block = new THREE.Mesh(geometry, material);
-            block.position.set(x, y, z);
-            scene.add(block);
-            blocks.push(block); // ブロックを配列に追加
-        },
-        undefined, // プログレスコールバック（必要に応じて追加）
-        function (error) {
-            console.error('テクスチャの読み込みに失敗しました:', error); // エラーハンドリング
-        }
-    );
+    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 }); // 緑のブロック
+    //const loader = new THREE.TextureLoader();
+    //const texture = loader.load('resource/texture/nature/cobblestone.png');
+    //const material = new THREE.MeshStandardMaterial({ map: texture });
+    const block = new THREE.Mesh(geometry, material);
+    block.position.set(x, y, z);
+    scene.add(block);
+    blocks.push(block); // ブロックを配列に追加
+    return block;
 }
