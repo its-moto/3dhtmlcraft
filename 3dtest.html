@@ -1,31 +1,139 @@
-function worldgen(){
-    // 地形生成
-    function generateTerrain(width, depth) {
-        for (let x = 0; x < width; x++) {
-            for (let z = 0; z < depth; z++) {
-                // シンプルックスノイズを使用して高さを決定
-                const height = Math.floor(simplex.noise2D(x * 0.1, z * 0.1) * 3 + 3);
-
-                // 高さに応じてブロックを生成
-                for (let y = 0; y <= height; y++) {
-                    createBlock(x, y, z);
-                }
-            }
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft-like World with Player and Camera Control</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="functions.js"></script>
+    <script src="playermove.js"></script>
+    <script src="worldgen.js"></script>
+    <script src="resource/model/nature/cobblestone.js"></script>
+    <style>
+    
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 5px;
         }
-    }
-    // 地形を生成
-    generateTerrain(10, 10); // 幅10、高さ10の地形を生成
-}
+    </style>
+</head>
+<body>
+    <div id="ui">This is a UI text overlay</div>
+    <script>
+        // シーン、カメラ、レンダラーの設定
+        const scene = new THREE.Scene();
+        const renderer = new THREE.WebGLRenderer({antialias: true });
+        renderer.setSize(window.innerWidth*0.9, window.innerHeight*0.9);
+        scene.background = new THREE.Color(0x41b3fa);
+        document.body.appendChild(renderer.domElement);
 
-function createBlock(x, y, z) {
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 }); // 緑のブロック
-    //const loader = new THREE.TextureLoader();
-    //const texture = loader.load('resource/texture/nature/cobblestone.png');
-    //const material = new THREE.MeshStandardMaterial({ map: texture });
-    const block = new THREE.Mesh(geometry, material);
-    block.position.set(x, y, z);
-    scene.add(block);
-    blocks.push(block); // ブロックを配列に追加
-    return block;
-}
+        // プレイヤーのサイズ
+        const playerHeight = 1.8;
+        const playerWidth = 0.6;
+
+        // プレイヤーオブジェクト
+        const playerGeometry = new THREE.BoxGeometry(playerWidth, playerHeight, playerWidth);
+        const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // 赤色のプレイヤー
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        scene.add(player);
+
+        // 初期リスポーン位置を地面の上に設定
+        player.position.set(0, playerHeight / 2 +20, 0); // 地面の上に配置（Y座標）
+
+        // 衝突検出用のプレイヤーの境界ボックスを作成
+        const playerBox = new THREE.Box3().setFromObject(player);
+
+        // 地形を生成
+        const blocks = [];
+        const simplex = new SimplexNoise();
+        worldgen(); // 幅10、高さ10の地形を生成
+
+
+        // 照明を追加
+        addLighting(scene);
+
+        // カメラをプレイヤーに取り付け
+        const camera = new THREE.PerspectiveCamera(75, 16/9, 0.1, 1000);
+        camera.position.set(-3, playerHeight-0.5, 0); // プレイヤーの頭の上に配置
+
+        // キーボード入力を管理するオブジェクト
+        const keysPressed = {};
+
+        // カメラの移動速度
+        const moveSpeed = 0.1;
+        const jumpForce = 0.11; // ジャンプの力
+        let velocityY = 0; // Y方向の速度
+        const gravity = -0.005; // 重力
+        let isGrounded = true; // 地面にいるかどうか
+
+        // キー押下イベント
+        document.addEventListener('keydown', (event) => {
+            keysPressed[event.key.toLowerCase()] = true;
+        });
+
+        // キー離上イベント
+        document.addEventListener('keyup', (event) => {
+            keysPressed[event.key.toLowerCase()] = false;
+        });
+
+        // マウスがクリックされたときにポインターロックを有効化
+        document.body.addEventListener('click', () => {
+            document.body.requestPointerLock();
+        });
+
+        // マウスの動きに応じてカメラの視点を操作
+        let yaw = 0; // Y軸（水平）の回転
+        let pitch = 0; // X軸（垂直）の回転
+
+        // ピッチ角度の制限（上下90度まで）
+        const pitchLimit = Math.PI / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            if (document.pointerLockElement === document.body) {
+                const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+                const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+                // Yawの更新（横の回転）
+                yaw -= movementX * 0.002;
+
+                // Pitchの更新（縦の回転）
+                pitch -= movementY * 0.002;
+                pitch = Math.max(-pitchLimit, Math.min(pitchLimit, pitch));
+
+                // カメラの回転を適用
+                camera.rotation.order = 'YXZ'; // カメラの回転順序をY（水平） -> X（垂直） -> Zにする
+                camera.rotation.y = yaw; // Y軸（水平）の回転を反映
+                camera.rotation.x = pitch; // X軸（垂直）の回転を反映
+            }
+        });
+
+        const uiElement = document.getElementById("ui");
+        
+        blocks.forEach(block => {
+            block.visible = isBlockVisible(block, blocks);
+        });
+
+        // アニメーションループ
+        function animate() {
+            uiElement.innerText = `checkhit:${checkhit()},idGrounded${isGrounded}`;
+            
+            requestAnimationFrame(animate);
+
+            // プレイヤーの移動
+            movePlayer();
+
+            // シーンのレンダリング
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
