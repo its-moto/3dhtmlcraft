@@ -18,12 +18,11 @@ function worldgen(playerX, playerZ) {
 function generateTerrain(offsetX, offsetZ, sprea = 0.1, high = 3) {
     for (let x = 0; x < chunkSize; x++) {
         for (let z = 0; z < chunkSize; z++) {
-            const height = Math.floor(simplex.noise2D((offsetX + x) * sprea, (offsetZ + z) * sprea) * high + high+15);
-
+            const height = Math.floor(simplex.noise2D((offsetX + x) * sprea, (offsetZ + z) * sprea) * high + high+20);
             for (let y = 0; y <= height; y++) {
                 // チーズ洞窟用のノイズ（大きな空洞を生成）
-                //const cheeseNoise = simplex.noise3D((offsetX + x) * 0.1, y * 0.1, (offsetZ + z) * 0.1);
-                //if (cheeseNoise > -0.1 && cheeseNoise < 0.1) {
+                //const cheeseNoise = simplex.noise3D((offsetX + x) * 0.01, y * 0.01, (offsetZ + z) * 0.01);
+                //if (cheeseNoise > -0.2 && cheeseNoise < 0.2) {
                 //    continue; // この範囲は大きな空洞にする
                 //}
 
@@ -50,7 +49,6 @@ function generateTerrain(offsetX, offsetZ, sprea = 0.1, high = 3) {
         }
     }
 }
-
 
 function createBlock(bx, by, bz, bcolor = 0x00ff00,blockid = 0) {
     const geometry = new THREE.BoxGeometry(1, 1, 1);

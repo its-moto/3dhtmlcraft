@@ -9,7 +9,7 @@
     <script src="functions.js"></script>
     <script src="playermove.js"></script>
     <script src="worldgen.js"></script>
-    <script src="resource/model/nature/cobblestone.js"></script>
+    <script src="blockids.js"></script>
     <style>
     
         #ui {
@@ -31,47 +31,56 @@
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({antialias: true });
         renderer.setSize(window.innerWidth*0.9, window.innerHeight*0.9);
+        renderer.setPixelRatio(1);
         scene.background = new THREE.Color(0x41b3fa);
         document.body.appendChild(renderer.domElement);
 
-        // プレイヤーのサイズ
-        const playerHeight = 1.8;
+        const playerHeight = 1.8; // プレイヤーのサイズ
         const playerWidth = 0.6;
-
         // プレイヤーオブジェクト
         const playerGeometry = new THREE.BoxGeometry(playerWidth, playerHeight, playerWidth);
         const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // 赤色のプレイヤー
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
         scene.add(player);
-
         // 初期リスポーン位置を地面の上に設定
-        player.position.set(0, playerHeight / 2 +20, 0); // 地面の上に配置（Y座標）
-
+        player.position.set(3, playerHeight / 2 +40, 3); // 地面の上に配置（Y座標）
         // 衝突検出用のプレイヤーの境界ボックスを作成
         const playerBox = new THREE.Box3().setFromObject(player);
+
 
         // 地形を生成
         const blocks = [];
         const simplex = new SimplexNoise();
-        worldgen(); // 幅10、高さ10の地形を生成
+        const loadedChunks = {}; // 読み込んだチャンクを追跡
+        const chunkSize = 4; // チャンクのサイズ
+        const renderDistance = 1; // プレイヤー周辺のチャンク数（半径）
+        const blockids = loadBlockIds(); //loadBlockIdsを読み込み
 
+        worldgen(); //世界の生成！！！！
 
         // 照明を追加
         addLighting(scene);
 
         // カメラをプレイヤーに取り付け
-        const camera = new THREE.PerspectiveCamera(75, 16/9, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, 16/9, 0.1, 20);
         camera.position.set(-3, playerHeight-0.5, 0); // プレイヤーの頭の上に配置
+        let viewtype = 1; //1:firstperson 2:backperson
+        let fhold = false
+        const moveSpeed = 0.1; // カメラの移動速度
+
+        // マウスの動きに応じてカメラの視点を操作
+        let yaw = 0; // Y軸（水平）の回転
+        let pitch = 0; // X軸（垂直）の回転
+        // ピッチ角度の制限（上下90度まで）
+        const pitchLimit = Math.PI / 2-0.001;
 
         // キーボード入力を管理するオブジェクト
         const keysPressed = {};
 
-        // カメラの移動速度
-        const moveSpeed = 0.1;
-        const jumpForce = 0.11; // ジャンプの力
+        const jumpForce = 0.15; // ジャンプの力
         let velocityY = 0; // Y方向の速度
-        const gravity = -0.005; // 重力
-        let isGrounded = true; // 地面にいるかどうか
+        const gravity = -0.009; // 重力
+        let isGrounded = false; // 地面にいるかどうか
 
         // キー押下イベント
         document.addEventListener('keydown', (event) => {
@@ -87,13 +96,6 @@
         document.body.addEventListener('click', () => {
             document.body.requestPointerLock();
         });
-
-        // マウスの動きに応じてカメラの視点を操作
-        let yaw = 0; // Y軸（水平）の回転
-        let pitch = 0; // X軸（垂直）の回転
-
-        // ピッチ角度の制限（上下90度まで）
-        const pitchLimit = Math.PI / 2;
 
         document.addEventListener('mousemove', (event) => {
             if (document.pointerLockElement === document.body) {
@@ -114,20 +116,34 @@
             }
         });
 
+        // FPS計算用の変数
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 0;
         const uiElement = document.getElementById("ui");
-        
-        blocks.forEach(block => {
-            block.visible = isBlockVisible(block, blocks);
-        });
+    
 
         // アニメーションループ
         function animate() {
-            uiElement.innerText = `checkhit:${checkhit()},idGrounded${isGrounded}`;
+            const now = performance.now();
+            const deltaTime = now - lastTime;
+            frameCount++;
+            if (deltaTime >= 1000) {
+                fps = frameCount;  // FPSをフレーム数で設定
+                frameCount = 0;  // フレーム数をリセット
+                lastTime = now;  // 時刻をリセット
+            }
+            uiElement.innerText = `checkhit:${checkhit()},idGrounded:${isGrounded},fps:${fps},x:${Math.round(player.position.x*100)/100}`;
             
             requestAnimationFrame(animate);
-
+            // チャンクの生成・非表示処理を追加
+            manageChunks();
             // プレイヤーの移動
             movePlayer();
+            
+            // プレイヤーの位置に基づいて新しいチャンクを生成
+            const playerChunkX = Math.floor(player.position.x / chunkSize);
+            const playerChunkZ = Math.floor(player.position.z / chunkSize);
 
             // シーンのレンダリング
             renderer.render(scene, camera);

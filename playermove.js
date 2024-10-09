@@ -1,7 +1,7 @@
 // プレイヤーの動き
 function movePlayer() {
     if (keysPressed['r']) {
-        player.position.set(0, playerHeight / 2 + 20, 0); // 地面の上に配置（Y座標）
+        player.position.set(3, playerHeight / 2 + 20, 3); // 地面の上に配置（Y座標）
         return;
     }
     const direction = new THREE.Vector3();
@@ -73,21 +73,45 @@ function movePlayer() {
         player.position.y += velocityY; // Y方向の位置を更新
     }
 
+    
     // 地面との当たり判定
     player.position.y -= 0.1;
     if (checkhit()) {
-        player.position.y += 0.01;
-        if (!checkhit()) {
-            player.position.y -= 0.01;
+        while (checkhit()) {
+            if (!checkhit()) {
+                player.position.y -= 0.02;//頭ぶつける判定
+            }
+            player.position.y += 0.01;
+            isGrounded = true;
+            velocityY = 0; // Y方向の速度をリセット
         }
-        isGrounded = true;
-        velocityY = 0; // Y方向の速度をリセット
+        player.position.y -= 0.1;
     } else {
         isGrounded = false; // 衝突がなければ空中にいることを示す
     }
     player.position.y += 0.1;
 
+    if (keysPressed['f'] && !fhold ) {
+        viewtype ++;
+        fhold = true;
+        if (viewtype == 3){
+            viewtype= 1
+        }
+    } if (!keysPressed['f']) {
+        fhold = false;
+    }
+    
     // カメラの位置をプレイヤーに追従させる
     camera.position.copy(player.position);
-    camera.position.y += playerHeight - 1.1; // プレイヤーの頭の上に配置
+    if (viewtype == 1) {
+        camera.position.y += playerHeight - 1.1; // プレイヤーの頭の上に配置
+    } else if (viewtype == 2) {
+        const distance = 5; // プレイヤーからカメラまでの距離
+        const cameraX = player.position.x + distance * Math.sin(yaw) * Math.cos(-pitch);
+        const cameraY = player.position.y + distance * Math.sin(-pitch) + playerHeight - 1.1;
+        const cameraZ = player.position.z + distance * Math.cos(yaw) * Math.cos(-pitch);
+
+        camera.position.set(cameraX, cameraY, cameraZ);
+        camera.lookAt(player.position); // カメラがプレイヤーを向くように設定
+    }
 }
