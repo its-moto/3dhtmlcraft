@@ -10,6 +10,7 @@
     <script src="functions.js"></script>
     <script src="playermove.js"></script>
     <script src="worldgen.js"></script>
+    <script src="resource/structure/nature/trees.js"></script>
     <script src="blockids.js"></script>
     <style>
     
@@ -28,10 +29,6 @@
 <body>
     <div id="ui">This is a UI text overlay</div>
     <script>
-        function setup() {
-            noiseSeed();  // 任意のシード値
-            noCanvas(); // three.jsを使う場合、p5.jsのキャンバスは不要
-        }
         // シーン、カメラ、レンダラーの設定
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({antialias: true });
@@ -47,8 +44,6 @@
         const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // 赤色のプレイヤー
         const player = new THREE.Mesh(playerGeometry, playerMaterial);
         scene.add(player);
-        // 初期リスポーン位置を地面の上に設定
-        player.position.set(3, playerHeight / 2 +40, 3); // 地面の上に配置（Y座標）
         // 衝突検出用のプレイヤーの境界ボックスを作成
         const playerBox = new THREE.Box3().setFromObject(player);
 
@@ -56,11 +51,19 @@
         // 地形を生成
         const blocks = [];
         const simplex = new SimplexNoise();
-        const loadedChunks = {}; // 読み込んだチャンクを追跡
+        let seed = Math.floor(Math.random() * 10000);
+        const loadedChunks = {seed}; // 読み込んだチャンクを追跡
+        function setup() {
+            noiseSeed(seed);  // 任意のシード値
+            noCanvas(); // three.jsを使う場合、p5.jsのキャンバスは不要
+        }
         const chunkCache = new Map();// チャンクデータをキャッシュするためのマップ
         const chunkSize = 5; // チャンクのサイズ
         const renderDistance = 1; // プレイヤー周辺のチャンク数（半径）
         const blockids = loadBlockIds(); //loadBlockIdsを読み込み
+        // 初期リスポーン位置を地面の上に設定
+        const spawnhigh = Math.floor(simplex.noise2D(0.18,0.18) * 4 + 8 + simplex.noise2D(0.18, 0.18) * 4 + 9);
+        player.position.set(3, playerHeight / 2 + spawnhigh, 3); // 地面の上に配置（Y座標）
 
         let genedspawnchunk = false;
         worldgen(); //世界の生成！！！！
@@ -73,7 +76,7 @@
         camera.position.set(-3, playerHeight-0.5, 0); // プレイヤーの頭の上に配置
         let viewtype = 1; //1:firstperson 2:backperson
         let fhold = false
-        const moveSpeed = 0.1; // カメラの移動速度
+        const moveSpeed = 0.2; // カメラの移動速度
 
         // マウスの動きに応じてカメラの視点を操作
         let yaw = 0; // Y軸（水平）の回転
@@ -140,7 +143,7 @@
                 frameCount = 0;  // フレーム数をリセット
                 lastTime = now;  // 時刻をリセット
             }
-            uiElement.innerHTML = `checkhit:${checkhit()},idGrounded:${isGrounded},fps:${fps}<br />x:${Math.round(player.position.x*100)/100},y:${Math.round(player.position.y*100)/100},z:${Math.round(player.position.z*100)/100},${yaw/Math.PI*180}`;
+            uiElement.innerHTML = `checkhit: ${checkhit()} ,idGrounded: ${isGrounded},fps:${fps}<br />x:${Math.round(player.position.x*10)/10}, y:${Math.round(player.position.y*10)/10}, z:${Math.round(player.position.z*10)/10}<br>seed: ${seed}`;
             
             requestAnimationFrame(animate);
             // プレイヤーの移動

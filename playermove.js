@@ -1,7 +1,8 @@
 // プレイヤーの動き
 async　function movePlayer() {
     if (keysPressed['r']) {
-        player.position.set(3, playerHeight / 2 + 40, 3); // 地面の上に配置（Y座標）
+        player.position.set(3, playerHeight / 2 + spawnhigh, 3); // 地面の上に配置（Y座標）
+        velocityY = 0;
         return;
     }
     const direction = new THREE.Vector3();

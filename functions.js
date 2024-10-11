@@ -2,7 +2,7 @@
 // 照明を設定する関数
 function addLighting(scene) {
     // 環境光を追加
-    const ambientLight = new THREE.AmbientLight(0x1b3540, 2); // 環境光
+    const ambientLight = new THREE.AmbientLight(0x1b3540, 1); // 環境光
     scene.add(ambientLight);
 
     // ポイントライトを追加
