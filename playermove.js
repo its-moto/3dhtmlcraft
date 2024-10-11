@@ -1,7 +1,7 @@
 // プレイヤーの動き
-function movePlayer() {
+async　function movePlayer() {
     if (keysPressed['r']) {
-        player.position.set(3, playerHeight / 2 + 20, 3); // 地面の上に配置（Y座標）
+        player.position.set(3, playerHeight / 2 + 40, 3); // 地面の上に配置（Y座標）
         return;
     }
     const direction = new THREE.Vector3();
@@ -113,5 +113,12 @@ function movePlayer() {
 
         camera.position.set(cameraX, cameraY, cameraZ);
         camera.lookAt(player.position); // カメラがプレイヤーを向くように設定
+    }
+    await manageChunks();
+
+    if (player.position.y >14){
+        scene.background = new THREE.Color(0x41b3fa);
+    } else {
+        scene.background = new THREE.Color(0x14374d);
     }
 }

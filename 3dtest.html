@@ -6,6 +6,7 @@
     <title>Minecraft-like World with Player and Camera Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script> <!-- p5.jsを追加 -->
     <script src="functions.js"></script>
     <script src="playermove.js"></script>
     <script src="worldgen.js"></script>
@@ -27,6 +28,10 @@
 <body>
     <div id="ui">This is a UI text overlay</div>
     <script>
+        function setup() {
+            noiseSeed();  // 任意のシード値
+            noCanvas(); // three.jsを使う場合、p5.jsのキャンバスは不要
+        }
         // シーン、カメラ、レンダラーの設定
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({antialias: true });
@@ -52,10 +57,12 @@
         const blocks = [];
         const simplex = new SimplexNoise();
         const loadedChunks = {}; // 読み込んだチャンクを追跡
-        const chunkSize = 4; // チャンクのサイズ
+        const chunkCache = new Map();// チャンクデータをキャッシュするためのマップ
+        const chunkSize = 5; // チャンクのサイズ
         const renderDistance = 1; // プレイヤー周辺のチャンク数（半径）
         const blockids = loadBlockIds(); //loadBlockIdsを読み込み
 
+        let genedspawnchunk = false;
         worldgen(); //世界の生成！！！！
 
         // 照明を追加
@@ -124,7 +131,7 @@
     
 
         // アニメーションループ
-        function animate() {
+        async function animate() {
             const now = performance.now();
             const deltaTime = now - lastTime;
             frameCount++;
@@ -133,13 +140,11 @@
                 frameCount = 0;  // フレーム数をリセット
                 lastTime = now;  // 時刻をリセット
             }
-            uiElement.innerText = `checkhit:${checkhit()},idGrounded:${isGrounded},fps:${fps},x:${Math.round(player.position.x*100)/100}`;
+            uiElement.innerHTML = `checkhit:${checkhit()},idGrounded:${isGrounded},fps:${fps}<br />x:${Math.round(player.position.x*100)/100},y:${Math.round(player.position.y*100)/100},z:${Math.round(player.position.z*100)/100},${yaw/Math.PI*180}`;
             
             requestAnimationFrame(animate);
-            // チャンクの生成・非表示処理を追加
-            manageChunks();
             // プレイヤーの移動
-            movePlayer();
+            await movePlayer();
             
             // プレイヤーの位置に基づいて新しいチャンクを生成
             const playerChunkX = Math.floor(player.position.x / chunkSize);
@@ -148,7 +153,7 @@
             // シーンのレンダリング
             renderer.render(scene, camera);
         }
-
+        
         animate();
     </script>
 </body>

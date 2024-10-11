@@ -54,7 +54,7 @@ function isBlockVisible(block, allBlocks) {
     return false;
 }
 
-function removeInvisibleBlocks(allBlocks) {
+async function removeInvisibleBlocks(allBlocks) {
     const blocksToRemove = []; // 削除するブロックのリスト
 
     for (let block of allBlocks) {
@@ -73,7 +73,7 @@ function removeInvisibleBlocks(allBlocks) {
 }
 
 
-function manageChunks() {
+async function manageChunks() {
     const playerChunkX = Math.floor(player.position.x / chunkSize);
     const playerChunkZ = Math.floor(player.position.z / chunkSize);
     let newgened = false;
@@ -85,7 +85,7 @@ function manageChunks() {
 
             if (!loadedChunks[chunkKey]) {
                 // チャンクが読み込まれていない場合、新しく生成
-                generateTerrain(x * chunkSize, z * chunkSize);
+                await generateTerrain(x * chunkSize, z * chunkSize); // 非同期生成
                 loadedChunks[chunkKey] = true;
                 newgened = true;
             }
@@ -97,14 +97,16 @@ function manageChunks() {
         const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
         if (Math.abs(chunkX - playerChunkX) > renderDistance || Math.abs(chunkZ - playerChunkZ) > renderDistance) {
             // プレイヤーから離れているチャンクを削除する
-            hideChunk(chunkX, chunkZ);
+            await hideChunk(chunkX, chunkZ);  // 非同期でチャンクを非表示
             delete loadedChunks[chunkKey]; // loadedChunks からも削除
         }
     }
-    if (newgened == true) {
-        removeInvisibleBlocks(blocks);
+    
+    if (newgened) {
+        await removeInvisibleBlocks(blocks); // 非同期で見えないブロックを削除
     }
 }
+
 
 function hideChunk(chunkX, chunkZ) {
     // チャンク内のブロックを削除する
